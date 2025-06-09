@@ -1,0 +1,67 @@
+{
+  "name": "youtube_feed",
+  "title": "YouTube Feed",
+  "group": "Custom Elements",
+  "icon": "social-youtube",
+  "width": 500,
+  "height": 500,
+  "defaults": {
+    "api_key": "",
+    "channel_id": "",
+    "video_count": 6,
+    "layout": "grid",
+    "show_title": true,
+    "show_description": false,
+    "description_max_length": 100
+  },
+  "fields": {
+    "api_key": {
+      "label": "YouTube API Key",
+      "type": "text",
+      "description": "Enter your YouTube Data API v3 Key."
+    },
+    "channel_id": {
+      "label": "YouTube Channel ID",
+      "type": "text",
+      "description": "Enter the ID of the YouTube channel (e.g., UCXXXXX)."
+    },
+    "video_count": {
+      "label": "Number of Videos",
+      "type": "number",
+      "default": 6,
+      "attrs": {
+        "min": 1,
+        "max": 50
+      }
+    },
+    "layout": {
+      "label": "Layout",
+      "type": "select",
+      "default": "grid",
+      "options": {
+        "Grid": "grid",
+        "List": "list"
+      }
+    },
+    "show_title": {
+      "label": "Show Video Titles",
+      "type": "checkbox",
+      "default": true
+    },
+    "show_description": {
+      "label": "Show Video Descriptions",
+      "type": "checkbox",
+      "default": false
+    },
+    "description_max_length": {
+      "label": "Description Max Length",
+      "type": "number",
+      "default": 100,
+      "attrs": {
+        "min": 20,
+        "max": 500
+      },
+      "enable": "show_description"
+    }
+  }
+}

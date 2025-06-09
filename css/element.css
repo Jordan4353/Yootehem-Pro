@@ -1,0 +1,99 @@
+/* css/element.css */
+
+.el-youtube-feed {
+    /* Base container styling */
+    margin-bottom: 20px;
+    font-family: Arial, sans-serif; /* Example font */
+}
+
+/* Grid Layout Specifics */
+.el-youtube-feed-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Responsive grid */
+    gap: 20px; /* Space between grid items */
+}
+
+/* List Layout Specifics */
+.el-youtube-feed-list .el-youtube-feed__video-item {
+    display: flex; /* Align thumbnail and details side-by-side */
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee; /* Separator for list items */
+}
+
+.el-youtube-feed-list .el-youtube-feed__video-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.el-youtube-feed-list .el-youtube-feed__thumbnail {
+    flex-shrink: 0; /* Prevent thumbnail from shrinking */
+    width: 160px; /* Fixed width for list view thumbnails */
+    margin-right: 15px;
+}
+
+.el-youtube-feed-list .el-youtube-feed__details {
+    flex-grow: 1;
+}
+
+
+/* Styling for individual video items (common to grid and list unless overridden) */
+.el-youtube-feed__video-item {
+    background-color: #f9f9f9; /* Light background for items */
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden; /* Ensure content stays within rounded corners */
+    transition: box-shadow 0.3s ease;
+}
+
+.el-youtube-feed__video-item:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.el-youtube-feed__thumbnail {
+    position: relative; /* For potential play icon overlay in future */
+    line-height: 0; /* Remove extra space below img */
+}
+
+.el-youtube-feed__thumbnail img {
+    width: 100%;
+    height: auto;
+    display: block; /* Remove extra space below img */
+}
+
+.el-youtube-feed__details {
+    padding: 15px;
+}
+
+.el-youtube-feed__title {
+    font-size: 1.1em;
+    font-weight: bold;
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.el-youtube-feed__title a {
+    text-decoration: none;
+    color: #333;
+}
+
+.el-youtube-feed__title a:hover {
+    color: #007bff; /* Example hover color */
+}
+
+.el-youtube-feed__description {
+    font-size: 0.9em;
+    color: #555;
+    line-height: 1.5;
+    margin-bottom: 0;
+}
+
+/* Optional: Date styling (if uncommented in template) */
+/*
+.el-youtube-feed__date {
+    font-size: 0.8em;
+    color: #777;
+    margin-top: 10px;
+}
+*/

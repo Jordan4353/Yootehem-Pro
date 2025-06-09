@@ -1,4 +1,5 @@
 <?php
+// https://proloyalweb.com
 // templates/content.php
 // This template is used for search indexing and as a fallback.
 // It should output plain text content.

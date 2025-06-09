@@ -1,5 +1,5 @@
 <?php
-// https://proloyalweb.com
+
 return [
     'transforms' => [
         'render' => function ($node, array $params) {

@@ -1,6 +1,4 @@
 <?php
-// https://proloyalweb.com
-
 // templates/template.php
 
 if (!empty($props['youtube_feed_error'])) {

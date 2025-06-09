@@ -8,23 +8,41 @@
     "element": true,
     "width": 500,
     "defaults": {
+        "source_type": "channel",
         "api_key": "",
         "channel_id": "",
+        "playlist_id": "",
+        "video_ids": "",
         "video_count": 6,
         "layout": "grid",
         "show_title": true,
         "show_description": false,
-        "description_max_length": 100
+        "description_max_length": 100,
+        "player_controls": true,
+        "player_modest_branding": false,
+        "player_loop": false,
+        "use_youtube_nocookie": true,
+        "cache_duration": 60
     },
     "templates": {
         "render": "./templates/template.php",
         "content": "./templates/content.php"
     },
     "fields": {
+        "source_type": {
+            "label": "Content Source",
+            "type": "select",
+            "default": "channel",
+            "options": {
+                "YouTube Channel": "channel",
+                "YouTube Playlist": "playlist",
+                "Specific Video(s)": "videos"
+            }
+        },
         "api_key": {
             "label": "YouTube API Key",
             "type": "text",
-            "description": "Enter your YouTube Data API v3 Key. Get one from Google Cloud Console.",
+            "description": "Required for all content sources. Get one from Google Cloud Console.",
             "attrs": {
                 "required": true
             }
@@ -35,17 +53,39 @@
             "description": "Enter the ID of the YouTube channel (e.g., UCXXXXX).",
             "attrs": {
                 "required": true
-            }
+            },
+            "show": "source_type == 'channel'"
+        },
+        "playlist_id": {
+            "label": "YouTube Playlist ID",
+            "type": "text",
+            "description": "Enter the ID of the YouTube playlist (e.g., PLXXXXX).",
+            "attrs": {
+                "required": true
+            },
+            "show": "source_type == 'playlist'"
+        },
+        "video_ids": {
+            "label": "Specific Video IDs",
+            "type": "textarea",
+            "description": "Enter comma-separated YouTube Video IDs (e.g., videoID1,videoID2). Limit of 50.",
+            "attrs": {
+                "rows": 3,
+                "required": true
+            },
+            "show": "source_type == 'videos'"
         },
         "video_count": {
-            "label": "Number of Videos",
+            "label": "Max Videos to Display",
             "type": "number",
             "default": 6,
+            "description": "Applies to Channel and Playlist sources. Max 50.",
             "attrs": {
                 "min": 1,
                 "max": 50,
                 "step": 1
-            }
+            },
+            "show": "source_type == 'channel' || source_type == 'playlist'"
         },
         "layout": {
             "label": "Layout",
@@ -79,9 +119,55 @@
             },
             "show": "show_description"
         },
-        "advanced_tab_info": {
+        "player_options_title": {
+            "type": "heading",
+            "label": "Player Options"
+        },
+        "player_controls": {
+            "label": "Show Player Controls",
+            "type": "checkbox",
+            "text": "Display video player controls.",
+            "default": true
+        },
+        "player_modest_branding": {
+            "label": "Modest YouTube Branding",
+            "type": "checkbox",
+            "text": "Reduce YouTube logo visibility in the player (showinfo parameter is deprecated).",
+            "default": false
+        },
+        "player_loop": {
+            "label": "Loop Video(s)",
+            "type": "checkbox",
+            "text": "Enable video looping. For playlists or multiple videos, it loops the entire list.",
+            "default": false
+        },
+        "privacy_options_title": {
+            "type": "heading",
+            "label": "Privacy"
+        },
+        "use_youtube_nocookie": {
+            "label": "Use YouTube Nocookie Domain",
+            "type": "checkbox",
+            "text": "Embed videos using youtube-nocookie.com for enhanced privacy.",
+            "default": true
+        },
+        "caching_options_title": {
+            "type": "heading",
+            "label": "Caching"
+        },
+        "cache_duration": {
+            "label": "Cache Duration (Minutes)",
+            "type": "number",
+            "description": "How long to cache YouTube API results. 0 to disable. Default: 60 minutes.",
+            "default": 60,
+            "attrs": {
+                "min": 0,
+                "step": 15
+            }
+        },
+        "cache_info": {
             "type": "description",
-            "description": "Advanced settings like Name, Status, ID, Class, Attributes, and Custom CSS can be found under the 'Advanced' tab common to all elements."
+            "description": "To manually clear the cache for this element during editing, append `?clear_yt_cache=YOUR_ELEMENT_ID` to the URL in the builder and reload the page. (YOUR_ELEMENT_ID will be visible in advanced settings once the element is saved)."
         }
     },
     "fieldset": {
@@ -92,17 +178,39 @@
                     "title": "Content",
                     "fields": [
                         "api_key",
+                        "source_type",
                         "channel_id",
+                        "playlist_id",
+                        "video_ids",
                         "video_count"
                     ]
                 },
                 {
-                    "title": "Settings",
+                    "title": "Layout & Display",
                     "fields": [
                         "layout",
                         "show_title",
                         "show_description",
-                        { "name": "description_max_length", "show": "show_description" }
+                        "description_max_length"
+                    ]
+                },
+                {
+                    "title": "Player & Privacy",
+                    "fields": [
+                        "player_options_title",
+                        "player_controls",
+                        "player_modest_branding",
+                        "player_loop",
+                        "privacy_options_title",
+                        "use_youtube_nocookie"
+                    ]
+                },
+                {
+                    "title": "Caching",
+                    "fields": [
+                        "caching_options_title",
+                        "cache_duration",
+                        "cache_info"
                     ]
                 }
             ]

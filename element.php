@@ -1,126 +1,180 @@
 <?php
 
-// Corresponds to element.php from YOOtheme Pro documentation
-// This file should return an array with 'transforms', 'updates', etc.
-
 return [
-
-    // Define transforms for the element node
     'transforms' => [
-
-        // The 'render' function is executed before the template.php is rendered
         'render' => function ($node, array $params) {
-            // $node->props contains the element's settings from element.json
-            // $params contains context like $params['builder']
-
-            // --- Start of our YouTube Data Fetching Logic ---
-
+            // --- Element Settings ---
             $api_key = isset($node->props['api_key']) ? $node->props['api_key'] : '';
+            $source_type = isset($node->props['source_type']) ? $node->props['source_type'] : 'channel';
             $channel_id = isset($node->props['channel_id']) ? $node->props['channel_id'] : '';
+            $playlist_id = isset($node->props['playlist_id']) ? $node->props['playlist_id'] : '';
+            $video_ids_str = isset($node->props['video_ids']) ? $node->props['video_ids'] : '';
             $video_count = isset($node->props['video_count']) ? (int)$node->props['video_count'] : 6;
+            $cache_duration_minutes = isset($node->props['cache_duration']) ? (int)$node->props['cache_duration'] : 60;
+            $cache_duration_seconds = $cache_duration_minutes * 60;
 
-            // Add a placeholder for videos and errors in props
+            // Initialize props for template
             $node->props['videos'] = [];
             $node->props['youtube_feed_error'] = '';
 
-            if (empty($api_key) || empty($channel_id)) {
-                $node->props['youtube_feed_error'] = 'YouTube API Key and Channel ID are required and configured in the element settings.';
-                // As per YOOtheme docs on "Collapsing Layout",
-                // returning false prevents rendering if essential content is missing.
-                // However, we might want to show the error message in the template.
-                // So, we'll let it render and the template can check for the error.
-                // If you strictly want it to collapse, return false here.
-                // For now, we'll allow rendering to show the error.
-                // return false; // Uncomment if strict collapse is needed
-                return; // Exit the transform if essential keys are missing but still render to show error
+            // --- Basic Validation ---
+            if (empty($api_key)) {
+                $node->props['youtube_feed_error'] = 'YouTube API Key is required.';
+                return;
             }
 
-            $api_url = sprintf(
-                'https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&order=date&maxResults=%d&channelId=%s&key=%s',
-                $video_count,
-                $channel_id,
-                $api_key
-            );
+            $valid_source = false;
+            if ($source_type === 'channel' && !empty($channel_id)) $valid_source = true;
+            if ($source_type === 'playlist' && !empty($playlist_id)) $valid_source = true;
+            if ($source_type === 'videos' && !empty($video_ids_str)) $valid_source = true;
 
+            if (!$valid_source) {
+                $node->props['youtube_feed_error'] = 'A valid Content Source ID (Channel, Playlist, or Video IDs) is required.';
+                return;
+            }
+
+            // --- Caching Setup ---
+            $transient_key_base = 'yt_feed_' . ($params['id'] ?? md5(json_encode($node->props))); // Use element ID if available, else hash props
+            $query_params_for_key = [
+                'source' => $source_type,
+                'count' => $video_count,
+                'cid' => $channel_id,
+                'pid' => $playlist_id,
+                'vids' => $video_ids_str
+            ];
+            $transient_key = $transient_key_base . '_' . md5(http_build_query($query_params_for_key));
+
+            // --- Manual Cache Clearing (Basic) ---
+            // Accessing $_GET directly in a transform might not be ideal or always possible depending on YOOtheme's execution context.
+            // A more robust solution would be a WP AJAX action or a dedicated settings page.
+            // This is a simplified example.
+            if (isset($_GET['clear_yt_cache']) && $_GET['clear_yt_cache'] === ($params['id'] ?? '')) {
+                delete_transient($transient_key);
+                $node->props['youtube_feed_error'] = 'Cache cleared for this element. Refresh to fetch new data.'; // Temporary message
+            }
+
+            if ($cache_duration_seconds > 0) {
+                $cached_videos = get_transient($transient_key);
+                if ($cached_videos !== false && is_array($cached_videos)) {
+                    $node->props['videos'] = $cached_videos;
+                    $node->props['youtube_feed_error'] = '<!-- Loaded from cache -->'; // Optional debug message
+                    return;
+                }
+            }
+
+            // --- API URL Construction ---
+            $api_url = '';
+            $api_base = 'https://www.googleapis.com/youtube/v3/';
+
+            switch ($source_type) {
+                case 'channel':
+                    // Search endpoint is often used to get recent videos from a channel
+                    // Alternatively, playlistItems with the channel's "uploads" playlistId could be used.
+                    // For simplicity with 'order=date', search is fine.
+                    $api_url = $api_base . sprintf(
+                        'search?part=snippet&type=video&order=date&maxResults=%d&channelId=%s&key=%s',
+                        $video_count, $channel_id, $api_key
+                    );
+                    break;
+                case 'playlist':
+                    $api_url = $api_base . sprintf(
+                        'playlistItems?part=snippet&maxResults=%d&playlistId=%s&key=%s',
+                        $video_count, $playlist_id, $api_key
+                    );
+                    break;
+                case 'videos':
+                    $video_ids_array = array_map('trim', explode(',', $video_ids_str));
+                    $video_ids_sanitized = array_filter($video_ids_array, function($vid) { return !empty($vid); });
+                    if (empty($video_ids_sanitized)) {
+                        $node->props['youtube_feed_error'] = 'No valid Video IDs provided.';
+                        return;
+                    }
+                    // YouTube API limits 50 video IDs per request for the 'videos' endpoint.
+                    $video_ids_chunk = array_slice($video_ids_sanitized, 0, 50);
+                    $api_url = $api_base . sprintf(
+                        'videos?part=snippet,contentDetails&id=%s&key=%s', // contentDetails for duration
+                        implode(',', $video_ids_chunk), $api_key
+                    );
+                    break;
+            }
+
+            if (empty($api_url)) {
+                $node->props['youtube_feed_error'] = 'Could not determine API endpoint.';
+                return;
+            }
+
+            // --- API Call ---
             $videos_data = [];
-            $error_message_for_prop = '';
-
             $curl = curl_init();
-            curl_setopt($curl, CURLOPT_URL, $api_url);
-            curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($curl, CURLOPT_TIMEOUT, 10);
-            curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
-            curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
-
+            curl_setopt_array($curl, [
+                CURLOPT_URL => $api_url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 10,
+                CURLOPT_SSL_VERIFYPEER => true,
+                CURLOPT_SSL_VERIFYHOST => 2,
+            ]);
             $response = curl_exec($curl);
             $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
             $curl_error = curl_error($curl);
             curl_close($curl);
 
+            // --- Response Processing ---
             if ($curl_error) {
-                $error_message_for_prop = 'API Request Error (cURL): ' . htmlspecialchars($curl_error);
+                $node->props['youtube_feed_error'] = 'API Request Error (cURL): ' . htmlspecialchars($curl_error);
             } elseif ($http_code !== 200) {
                 $api_error_msg = 'Unknown API error';
                 if ($response) {
                     $error_data = json_decode($response, true);
-                    if (isset($error_data['error']['message'])) {
-                        $api_error_msg = $error_data['error']['message'];
-                    }
+                    $api_error_msg = $error_data['error']['message'] ?? $api_error_msg;
                 }
-                $error_message_for_prop = sprintf('API Request Error (HTTP %d): %s', $http_code, htmlspecialchars($api_error_msg));
+                $node->props['youtube_feed_error'] = sprintf('API Request Error (HTTP %d): %s', $http_code, htmlspecialchars($api_error_msg));
             } else {
                 $data = json_decode($response, true);
-                if (isset($data['items'])) {
+                if (isset($data['error'])) {
+                    $node->props['youtube_feed_error'] = 'API Error: ' . htmlspecialchars($data['error']['message']);
+                } elseif (isset($data['items']) && is_array($data['items'])) {
+                    if (empty($data['items'])) {
+                         $node->props['youtube_feed_error'] = 'No videos found for the specified criteria.';
+                    }
                     foreach ($data['items'] as $item) {
-                        if (isset($item['id']['videoId']) && isset($item['snippet'])) {
-                            $videos_data[] = [
-                                'id' => $item['id']['videoId'],
-                                'title' => isset($item['snippet']['title']) ? $item['snippet']['title'] : 'No title',
-                                'description' => isset($item['snippet']['description']) ? $item['snippet']['description'] : '',
-                                'thumbnail_default' => isset($item['snippet']['thumbnails']['default']['url']) ? $item['snippet']['thumbnails']['default']['url'] : '',
-                                'thumbnail_medium' => isset($item['snippet']['thumbnails']['medium']['url']) ? $item['snippet']['thumbnails']['medium']['url'] : '',
-                                'thumbnail_high' => isset($item['snippet']['thumbnails']['high']['url']) ? $item['snippet']['thumbnails']['high']['url'] : '',
-                                'published_at' => isset($item['snippet']['publishedAt']) ? $item['snippet']['publishedAt'] : '',
-                            ];
+                        $snippet = $item['snippet'] ?? null;
+                        $video_id = '';
+
+                        if ($source_type === 'playlist' ) {
+                            $video_id = $snippet['resourceId']['videoId'] ?? '';
+                        } elseif ($source_type === 'channel') { // 'search' for channel
+                            $video_id = $item['id']['videoId'] ?? '';
+                        } elseif ($source_type === 'videos') {
+                            $video_id = $item['id'] ?? '';
                         }
+
+                        if (!$snippet || empty($video_id)) continue;
+
+                        $videos_data[] = [
+                            'id' => $video_id,
+                            'title' => $snippet['title'] ?? 'No title',
+                            'description' => $snippet['description'] ?? '',
+                            'thumbnail_default' => $snippet['thumbnails']['default']['url'] ?? '',
+                            'thumbnail_medium' => $snippet['thumbnails']['medium']['url'] ?? '',
+                            'thumbnail_high' => $snippet['thumbnails']['high']['url'] ?? '',
+                            'published_at' => $snippet['publishedAt'] ?? '',
+                            // 'duration' => $source_type === 'videos' ? ($item['contentDetails']['duration'] ?? '') : '' // Requires contentDetails part
+                        ];
                     }
-                    if (empty($videos_data) && empty($data['items'])) { // No items found, not an error but empty result
-                         $error_message_for_prop = 'No videos found for this channel, or the channel has no recent uploads.';
+
+                    if (!empty($videos_data) && $cache_duration_seconds > 0) {
+                        set_transient($transient_key, $videos_data, $cache_duration_seconds);
                     }
-                } elseif (isset($data['error'])) {
-                    $error_message_for_prop = 'API Error: ' . htmlspecialchars($data['error']['message']);
                 } else {
-                    $error_message_for_prop = 'Could not parse YouTube API response or no videos found.';
+                    $node->props['youtube_feed_error'] = 'Could not parse YouTube API response or no items found.';
                 }
             }
-
-            if (!empty($error_message_for_prop)) {
-                $node->props['youtube_feed_error'] = $error_message_for_prop;
-            }
-
             $node->props['videos'] = $videos_data;
 
-            // According to docs, to prevent rendering if content is empty (e.g. title AND content)
-            // return $node->props['title'] || $node->props['content'];
-            // In our case, we want to render even if there's an error (to show the error).
-            // If videos array is empty AND no error, it means no videos found, which is a valid state to render (showing "no videos").
-            // So, we don't need to return false here unless API keys are missing and we choose strict collapse.
-            // If API keys are missing, we already set an error and returned early from the transform.
+            // Player options are already in $node->props by default from element.json,
+            // so no need to explicitly pass them here unless they need transformation.
         },
     ],
-
-    // Define updates for the element node (optional, for version migrations)
-    'updates' => [
-        // Example:
-        // '1.0.1' => function ($node, array $params) {
-        //     // Make changes to $node->props if the element was saved with an older version
-        //     if (isset($node->props['old_setting'])) {
-        //         $node->props['new_setting'] = $node->props['old_setting'];
-        //         unset($node->props['old_setting']);
-        //     }
-        // },
-    ],
-
+    'updates' => [], // Placeholder for future schema updates
 ];
-
 ?>

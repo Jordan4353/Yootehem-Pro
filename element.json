@@ -1,67 +1,111 @@
 {
-  "name": "youtube_feed",
-  "title": "YouTube Feed",
-  "group": "Custom Elements",
-  "icon": "social-youtube",
-  "width": 500,
-  "height": 500,
-  "defaults": {
-    "api_key": "",
-    "channel_id": "",
-    "video_count": 6,
-    "layout": "grid",
-    "show_title": true,
-    "show_description": false,
-    "description_max_length": 100
-  },
-  "fields": {
-    "api_key": {
-      "label": "YouTube API Key",
-      "type": "text",
-      "description": "Enter your YouTube Data API v3 Key."
+    "@import": "./element.php",
+    "name": "youtube_feed",
+    "title": "YouTube Feed",
+    "group": "Custom",
+    "icon": "${url:images/icon.svg}",
+    "iconSmall": "${url:images/iconSmall.svg}",
+    "element": true,
+    "width": 500,
+    "defaults": {
+        "api_key": "",
+        "channel_id": "",
+        "video_count": 6,
+        "layout": "grid",
+        "show_title": true,
+        "show_description": false,
+        "description_max_length": 100
     },
-    "channel_id": {
-      "label": "YouTube Channel ID",
-      "type": "text",
-      "description": "Enter the ID of the YouTube channel (e.g., UCXXXXX)."
+    "templates": {
+        "render": "./templates/template.php",
+        "content": "./templates/content.php"
     },
-    "video_count": {
-      "label": "Number of Videos",
-      "type": "number",
-      "default": 6,
-      "attrs": {
-        "min": 1,
-        "max": 50
-      }
+    "fields": {
+        "api_key": {
+            "label": "YouTube API Key",
+            "type": "text",
+            "description": "Enter your YouTube Data API v3 Key. Get one from Google Cloud Console.",
+            "attrs": {
+                "required": true
+            }
+        },
+        "channel_id": {
+            "label": "YouTube Channel ID",
+            "type": "text",
+            "description": "Enter the ID of the YouTube channel (e.g., UCXXXXX).",
+            "attrs": {
+                "required": true
+            }
+        },
+        "video_count": {
+            "label": "Number of Videos",
+            "type": "number",
+            "default": 6,
+            "attrs": {
+                "min": 1,
+                "max": 50,
+                "step": 1
+            }
+        },
+        "layout": {
+            "label": "Layout",
+            "type": "select",
+            "default": "grid",
+            "options": {
+                "Grid": "grid",
+                "List": "list"
+            }
+        },
+        "show_title": {
+            "label": "Show Video Titles",
+            "type": "checkbox",
+            "text": "Display the title for each video.",
+            "default": true
+        },
+        "show_description": {
+            "label": "Show Video Descriptions",
+            "type": "checkbox",
+            "text": "Display the description for each video.",
+            "default": false
+        },
+        "description_max_length": {
+            "label": "Description Max Length",
+            "type": "number",
+            "default": 100,
+            "attrs": {
+                "min": 20,
+                "max": 500,
+                "step": 10
+            },
+            "show": "show_description"
+        },
+        "advanced_tab_info": {
+            "type": "description",
+            "description": "Advanced settings like Name, Status, ID, Class, Attributes, and Custom CSS can be found under the 'Advanced' tab common to all elements."
+        }
     },
-    "layout": {
-      "label": "Layout",
-      "type": "select",
-      "default": "grid",
-      "options": {
-        "Grid": "grid",
-        "List": "list"
-      }
-    },
-    "show_title": {
-      "label": "Show Video Titles",
-      "type": "checkbox",
-      "default": true
-    },
-    "show_description": {
-      "label": "Show Video Descriptions",
-      "type": "checkbox",
-      "default": false
-    },
-    "description_max_length": {
-      "label": "Description Max Length",
-      "type": "number",
-      "default": 100,
-      "attrs": {
-        "min": 20,
-        "max": 500
-      },
-      "enable": "show_description"
+    "fieldset": {
+        "default": {
+            "type": "tabs",
+            "fields": [
+                {
+                    "title": "Content",
+                    "fields": [
+                        "api_key",
+                        "channel_id",
+                        "video_count"
+                    ]
+                },
+                {
+                    "title": "Settings",
+                    "fields": [
+                        "layout",
+                        "show_title",
+                        "show_description",
+                        { "name": "description_max_length", "show": "show_description" }
+                    ]
+                }
+            ]
+        }
     }
-  }
 }

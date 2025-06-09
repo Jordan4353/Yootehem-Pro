@@ -1,16 +1,24 @@
-# YOOtheme Pro Custom YouTube Feed Element
+# YOOtheme Pro Custom YouTube Feed Element (Corrected)
 
-This document provides instructions on how to use and integrate the custom YouTube Feed element into your YOOtheme Pro website.
+This document provides updated instructions on how to use and integrate the custom YouTube Feed element into your YOOtheme Pro WordPress website, based on current YOOtheme Pro developer documentation.
 
 ## Files Created
 
-The following files constitute the custom element:
+The custom element consists of the following files:
 
--   `element.json`: Defines the element's settings and properties for the YOOtheme Pro builder.
--   `element.php`: Contains the server-side PHP logic to fetch data from the YouTube API and pass it to the template.
--   `templates/template.php`: The HTML/PHP template for rendering the video feed.
--   `css/element.css`: Basic CSS styles for the element.
--   `js/element.js`: Placeholder JavaScript file for future interactivity.
+-   `youtube-feed/` (Your element's root directory)
+    -   `element.json`: Defines the element's settings, properties, icons, and templates for the YOOtheme Pro builder. It also imports `element.php`.
+    -   `element.php`: Contains server-side PHP logic, specifically a `render` transform that fetches data from the YouTube API and prepares it for the templates by adding it to `$node->props`.
+    -   `templates/`
+        -   `template.php`: The main HTML/PHP template for rendering the visual output of the video feed.
+        -   `content.php`: A simplified HTML/PHP template for search engine indexing and fallback content.
+    -   `css/`
+        -   `element.css`: Basic CSS styles for the element.
+    -   `js/`
+        -   `element.js`: Placeholder JavaScript file for future interactivity.
+    -   `images/`
+        -   `icon.svg`: Icon for the YOOtheme Pro element library.
+        -   `iconSmall.svg`: Icon for the YOOtheme Pro builder panel.
 
 ## 1. Obtain a YouTube Data API Key
 
@@ -29,94 +37,86 @@ To use this element, you need a YouTube Data API v3 key.
     *   From the Credentials page, click on the name of your API key.
     *   Under "API restrictions", select "Restrict key".
     *   From the dropdown, select "YouTube Data API v3".
-    *   Under "Application restrictions", you might consider restricting it to your web server's IP addresses for better security, though this can be complex to manage. HTTP referrer restrictions are also an option but can sometimes be bypassed. Start with no application restrictions if unsure, but be mindful of your quota.
+    *   Consider further restrictions like "IP addresses" for server-side use if possible.
     *   Save the changes.
 
-**Important:** Keep your API key confidential. Do not embed it directly in client-side JavaScript if you can avoid it. This element uses it server-side in `element.php`.
+**Important:** Keep your API key confidential. This element uses it server-side in `element.php`.
 
-## 2. Directory Structure and Integration
+## 2. Integration into YOOtheme Pro (WordPress)
 
-YOOtheme Pro typically loads custom elements from a child theme or a custom plugin. The exact location can sometimes vary based on YOOtheme Pro updates or specific setups, but a common practice for child themes is:
+YOOtheme Pro automatically detects custom elements placed in a child theme's `builder` directory.
 
-Assuming you have a YOOtheme Pro child theme active:
-
-1.  **Create a directory for your custom element** within your child theme. A common path is:
+1.  **Ensure you have a YOOtheme Pro child theme active.** If not, create one first (see YOOtheme Pro documentation for "Child Themes").
+2.  **Create the element directory:**
+    Navigate to your WordPress child theme's directory:
+    `wp-content/themes/YOUR_CHILD_THEME_NAME/`
+3.  **Inside your child theme, create a `builder` directory if it doesn't already exist.**
+4.  **Inside the `builder` directory, create a directory for your custom element.** For this element, name it `youtube-feed`.
+    The final path should look like:
     `wp-content/themes/YOUR_CHILD_THEME_NAME/builder/youtube-feed/`
-    (For Joomla, the path would be `templates/YOUR_CHILD_THEME_NAME/builder/youtube-feed/`)
+5.  **Place all the generated element files (as listed above) into this `youtube-feed` directory, maintaining the subdirectory structure (templates, css, js, images).**
 
-    If the `builder` directory doesn't exist in your child theme, create it.
-    The `youtube-feed` part is the name of your element.
-
-2.  **Place the generated files into this directory:**
+    Correct structure:
     ```
     YOUR_CHILD_THEME_NAME/
     └── builder/
-        └── youtube-feed/
+        └── youtube-feed/  <-- This is where you copy all the element files
             ├── element.json
             ├── element.php
             ├── templates/
-            │   └── template.php
+            │   ├── template.php
+            │   └── content.php
             ├── css/
             │   └── element.css
-            └── js/
-                └── element.js
+            ├── js/
+            │   └── element.js
+            └── images/
+                ├── icon.svg
+                └── iconSmall.svg
     ```
 
-3.  **Element Registration (Important):**
-    YOOtheme Pro needs to know about your new element. This is often done via the child theme's `config.php` or a similar mechanism. You might need to add something like this to your child theme's `config.php` (usually located at `wp-content/themes/YOUR_CHILD_THEME_NAME/config.php` or `templates/YOUR_CHILD_THEME_NAME/config.php` for Joomla):
+6.  **No `config.php` modification is typically needed** for element discovery when using a child theme and this directory structure. YOOtheme Pro should automatically find and register the element.
 
-    ```php
-    <?php
-    // Ensure this file is being included by YOOtheme Pro.
-    defined('_JEXEC') or defined('ABSPATH') or die;
+## 3. How it Works (Key Files)
 
-    return [
-        // ... other configurations ...
+*   **`element.json`**: This is the main configuration file. It tells YOOtheme Pro about the element, its settings (fields), default values, and importantly:
+    *   `"@import": "./element.php"`: Loads the PHP logic file.
+    *   `"icon": "${url:images/icon.svg}"` (and `iconSmall`): Specifies the icons.
+    *   `"templates": { "render": "./templates/template.php", "content": "./templates/content.php" }`: Defines which files render the element.
+*   **`element.php`**: This file doesn't output HTML directly. Its primary role is to prepare data for the templates.
+    *   It uses a `transforms['render']` function. This function is executed by YOOtheme Pro before `template.php` is rendered.
+    *   Inside this function, it fetches data from the YouTube API using your settings (API Key, Channel ID).
+    *   The fetched videos and any error messages are added to the `$node->props` object (e.g., `$node->props['videos']`, `$node->props['youtube_feed_error']`).
+*   **`templates/template.php`**: This file generates the actual HTML for the element that users see. It accesses the video data and error messages from the `$props` array (e.g., `$props['videos']`, `$props['youtube_feed_error']`).
+*   **`templates/content.php`**: Provides a simplified HTML version of the content for search engines and fallback purposes. It also accesses data from `$props`.
 
-        'elements' => [
-            // Register a directory for custom elements
-            // The key 'myElements' can be anything unique
-            'myYouTubeElement' => __DIR__ . '/builder/youtube-feed'
-        ],
-
-        // If your element has custom JavaScript that needs to be loaded,
-        // you might also need to register it, though often YOOtheme Pro
-        // automatically loads element.js if present.
-        // Check YOOtheme Pro documentation for specifics on JS loading for elements.
-
-        // ... other configurations ...
-    ];
-    ```
-    **Note:** The exact method for element registration can change. **Always consult the latest YOOtheme Pro developer documentation** for the most up-to-date method of adding custom elements. If the `config.php` method above doesn't work, search their documentation for "custom elements" or "builder elements".
-
-## 3. Dependencies
+## 4. Dependencies
 
 *   **PHP cURL Extension:** The `element.php` file uses cURL to make requests to the YouTube API. Ensure the cURL extension is installed and enabled on your web server.
-*   **YOOtheme Pro:** This element is designed for YOOtheme Pro and relies on its framework.
+*   **YOOtheme Pro (WordPress version):** This element is designed for YOOtheme Pro.
 
-## 4. Using the Element
+## 5. Using the Element
 
-Once correctly installed and registered:
+Once correctly installed:
 
-1.  Open the YOOtheme Pro builder.
-2.  You should find the "YouTube Feed" element in the list of available elements (likely under "Custom Elements" or the group you defined in `element.json`).
+1.  Open the YOOtheme Pro builder on a page or layout.
+2.  You should find the "YouTube Feed" element in the element library (likely under the "Custom" group, or the group defined in `element.json`).
 3.  Add it to your layout.
-4.  Configure the settings:
-    *   **YouTube API Key:** Your API key from step 1.
-    *   **YouTube Channel ID:** The ID of the channel you want to display videos from (e.g., `UCxxxxxxxxxxxxxxxxx`). You can find this in the channel's URL or its "Advanced settings" on YouTube.
-    *   **Number of Videos:** How many videos to show.
-    *   **Layout:** Grid or List.
-    *   **Show Video Titles/Descriptions:** Toggle visibility.
-    *   **Description Max Length:** Control snippet length.
+4.  Configure the settings in the builder:
+    *   YouTube API Key
+    *   YouTube Channel ID
+    *   Number of Videos
+    *   Layout (Grid/List)
+    *   Display options for titles and descriptions.
 
-## 5. Important Considerations & Potential Adjustments
+## 6. Important Considerations & Potential Adjustments
 
-*   **API Quotas:** The YouTube Data API has usage quotas. If you make too many requests, your access might be temporarily blocked. Consider caching API responses if your site has high traffic (this element does not include caching by default).
-*   **Error Handling:** The provided `element.php` has basic error handling. For a production site, you might want to implement more robust error logging or user-friendly messages.
-*   **Styling:** The `css/element.css` provides basic styles. You will likely want to customize these to match your theme's design. You can override these styles in your child theme's custom CSS.
-*   **JavaScript:** The `js/element.js` is currently a placeholder. For advanced features like lightboxes or AJAX "load more", you'll need to write custom JavaScript, potentially integrating with YOOtheme Pro's UIkit framework.
-*   **Security:** Always keep your API key secure. The current setup uses it server-side, which is good.
-*   **YOOtheme Pro Updates:** YOOtheme Pro updates can sometimes introduce changes that affect custom elements. It's good practice to test custom elements after theme updates.
-*   **Alternative API Endpoints:** The current element uses the `search` endpoint to get videos by `channelId`. For specific playlists, you might need to adjust the API URL in `element.php` to use the `playlistItems` endpoint.
+*   **API Quotas:** The YouTube Data API has usage quotas. Consider caching if your site has high traffic (this element does not include caching).
+*   **Error Handling:** `element.php` sets error messages in `$props['youtube_feed_error']`, which `template.php` displays using UIkit alert styling. You can customize this.
+*   **Styling:** Customize styles in `css/element.css` or your child theme's custom CSS.
+*   **JavaScript (`js/element.js`):** Currently a placeholder. Add custom JS here if needed.
+*   **Security:** Keep your API key secure.
+*   **YOOtheme Pro Updates:** Test custom elements after theme updates, as framework changes can occasionally affect them. Always refer to the latest YOOtheme Pro developer documentation if issues arise.
 
-This guide should help you get started. Good luck!
+This updated guide should help you successfully integrate and use the custom YouTube Feed element.
+```

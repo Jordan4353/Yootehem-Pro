@@ -14,19 +14,20 @@
     "fields": {
         "api_key": {
             "label": "OpenWeatherMap API Key",
-            "description": "Enter your free API key from OpenWeatherMap.",
-            "type": "text",
-            "attrs": {
-                "required": true
-            }
+            "description": "Enter your API key from OpenWeatherMap.",
+            "type": "text"
         },
         "location": {
-            "label": "Location",
-            "description": "Enter city and country code (e.g., London,UK or New York,US).",
-            "type": "text",
-            "attrs": {
-                "required": true
-            }
+            "label": "Manual Location",
+            "description": "Enter city and country code (e.g., London,UK). Used if 'Detect Location Automatically' is off or fails.",
+            "type": "text"
+        },
+        "auto_location": {
+            "label": "Detect Location Automatically",
+            "description": "Attempt to detect user's location based on IP address. Manual Location is used as a fallback.",
+            "type": "checkbox",
+            "text": "Enable automatic location detection",
+            "default": false
         },
         "units": {
             "label": "Units",
@@ -42,6 +43,28 @@
             "description": "How long to cache the weather data. Default is 3600 seconds (1 hour).",
             "type": "number",
             "default": 3600
+        },
+        "show_humidity": {
+            "label": "Humidity Display",
+            "type": "checkbox",
+            "text": "Show Humidity Information",
+            "default": true
+        },
+        "show_wind": {
+            "label": "Wind Speed Display",
+            "type": "checkbox",
+            "text": "Show Wind Speed Information",
+            "default": true
+        },
+        "forecast_days": {
+            "label": "Forecast Days",
+            "description": "Number of forecast days to display (0-7). Note: OpenWeatherMap free tier provides 5-day/3-hour forecast. Daily forecast might require a paid plan for extensive range.",
+            "type": "number",
+            "default": 0,
+            "attrs": {
+                "min": 0,
+                "max": 7
+            }
         },
         "css": {
             "type": "editor",
@@ -64,12 +87,25 @@
             "type": "tabs",
             "fields": [
                 {
-                    "title": "Settings",
+                    "title": "Content",
                     "fields": [
                         "api_key",
+                        "auto_location",
                         "location",
-                        "units",
-                        "cache_duration"
+                        {
+                            "label": "Display Options",
+                            "type": "group",
+                            "divider": true,
+                            "fields": ["units", "cache_duration"]
+                        }
+                    ]
+                },
+                {
+                    "title": "Settings",
+                    "fields": [
+                        "show_humidity",
+                        "show_wind",
+                        "forecast_days"
                     ]
                 },
                 "${builder.advanced}"
@@ -78,6 +114,10 @@
     },
     "defaults": {
         "units": "metric",
-        "cache_duration": 3600
+        "cache_duration": 3600,
+        "auto_location": false,
+        "show_humidity": true,
+        "show_wind": true,
+        "forecast_days": 0
     }
 }

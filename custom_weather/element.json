@@ -1,0 +1,83 @@
+{
+    "name": "custom_weather",
+    "title": "Weather",
+    "group": "Custom",
+    "icon": "${url:images/icon.svg}",
+    "iconSmall": "${url:images/iconSmall.svg}",
+    "element": true,
+    "width": 500,
+    "templates": {
+        "render": "./templates/template.php",
+        "content": "./templates/content.php"
+    },
+    "@import": "./element.php",
+    "fields": {
+        "api_key": {
+            "label": "OpenWeatherMap API Key",
+            "description": "Enter your free API key from OpenWeatherMap.",
+            "type": "text",
+            "attrs": {
+                "required": true
+            }
+        },
+        "location": {
+            "label": "Location",
+            "description": "Enter city and country code (e.g., London,UK or New York,US).",
+            "type": "text",
+            "attrs": {
+                "required": true
+            }
+        },
+        "units": {
+            "label": "Units",
+            "type": "select",
+            "default": "metric",
+            "options": {
+                "Celsius (Metric)": "metric",
+                "Fahrenheit (Imperial)": "imperial"
+            }
+        },
+        "cache_duration": {
+            "label": "Cache Duration (seconds)",
+            "description": "How long to cache the weather data. Default is 3600 seconds (1 hour).",
+            "type": "number",
+            "default": 3600
+        },
+        "css": {
+            "type": "editor",
+            "label": "CSS",
+            "description": "Enter your own custom CSS.",
+            "editor": "code",
+            "mode": "css",
+            "attrs": {
+                "debounce": 500
+            }
+        },
+        "status": "${builder.status}",
+        "source": "${builder.source}",
+        "id": "${builder.id}",
+        "class": "${builder.cls}",
+        "attributes": "${builder.attrs}"
+    },
+    "fieldset": {
+        "default": {
+            "type": "tabs",
+            "fields": [
+                {
+                    "title": "Settings",
+                    "fields": [
+                        "api_key",
+                        "location",
+                        "units",
+                        "cache_duration"
+                    ]
+                },
+                "${builder.advanced}"
+            ]
+        }
+    },
+    "defaults": {
+        "units": "metric",
+        "cache_duration": 3600
+    }
+}
